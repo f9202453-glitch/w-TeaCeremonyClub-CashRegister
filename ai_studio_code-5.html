@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>茶道部 会計レジ</title>
+  <style>
+    :root {
+      --primary: #4a6b53; /* 抹茶色 */
+      --primary-light: #eef4f0;
+      --bg: #f8faf8;
+      --card: #ffffff;
+      --text: #333333;
+      --danger: #d9534f;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 12px;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 1.3rem;
+      margin: 0;
+      color: var(--primary);
+    }
+    .status-badge {
+      font-size: 0.75rem;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .col {
+      flex: 1;
+    }
+    label {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #666;
+      display: block;
+      margin-bottom: 4px;
+    }
+    select, input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      background: #fff;
+    }
+    /* 人数ボタン */
+    .count-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .btn-count {
+      padding: 10px 0;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .btn-count.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      font-weight: bold;
+    }
+    .manual-count-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 0.85rem;
+      color: #555;
+    }
+    .manual-count-box input {
+      width: 80px;
+      text-align: center;
+      padding: 6px;
+    }
+    /* 合計とお預かり */
+    .total-box {
+      text-align: center;
+      background: var(--primary-light);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    .total-amount {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+    .money-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .btn-money {
+      padding: 8px 0;
+      font-size: 0.85rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fafafa;
+      cursor: pointer;
+    }
+    .change-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 12px;
+      background: #fff5f5;
+      border-radius: 8px;
+      border: 1px solid #fed7d7;
+    }
+    .change-amount {
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--danger);
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #fff;
+      background: var(--primary);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn-submit:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+    .history-table th, .history-table td {
+      border-bottom: 1px solid #eee;
+      padding: 6px 4px;
+      text-align: center;
+    }
+    .btn-setting {
+      background: none;
+      border: 1px solid #999;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .btn-csv {
+      width: 100%;
+      padding: 10px;
+      background: #444;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>🍵 茶道部 会計レジ</h1>
+        <span class="status-badge" id="cloudStatus">クラウド接続中...</span>
+      </div>
+      <button class="btn-setting" id="btnToggleSetting">⚙ 設定</button>
+    </header>
+
+    <!-- 設定エリア -->
+    <div id="settingCard" class="card" style="display: none; background: #fffde7;">
+      <label>席料の単価設定 (円)</label>
+      <div style="display: flex; gap: 8px;">
+        <input type="number" id="unitPriceInput" value="800">
+        <button id="btnSavePrice" style="padding: 0 16px; background: var(--primary); color:#fff; border:none; border-radius:6px; cursor:pointer;">保存</button>
+      </div>
+    </div>
+
+    <!-- 条件選択（日数・席回） -->
+    <div class="card">
+      <div class="row">
+        <div class="col">
+          <label>開催日</label>
+          <select id="daySelect">
+            <option value="1日目">1日目</option>
+            <option value="2日目">2日目</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>現在の席</label>
+          <select id="sessionSelect">
+            <option value="第1席">第1席</option>
+            <option value="第2席">第2席</option>
+            <option value="第3席">第3席</option>
+            <option value="第4席">第4席</option>
+            <option value="第5席">第5席</option>
+            <option value="第6席">第6席</option>
+            <option value="第7席">第7席</option>
+            <option value="第8席">第8席</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 会計メイン -->
+    <div class="card">
+      <label>人数を選択（単価: <span id="priceDisplay">800</span>円）</label>
+      <div class="count-grid">
+        <button class="btn-count active" data-count="1">1名</button>
+        <button class="btn-count" data-count="2">2名</button>
+        <button class="btn-count" data-count="3">3名</button>
+        <button class="btn-count" data-count="4">4名</button>
+      </div>
+      <div class="manual-count-box">
+        <span>5名以上または直接指定:</span>
+        <input type="number" id="countInput" min="1" max="50" value="1">
+        <span>名</span>
+      </div>
+
+      <div class="total-box">
+        <div style="font-size:0.85rem; color:#666;">合計金額</div>
+        <div class="total-amount"><span id="totalDisplay">800</span> 円</div>
+      </div>
+
+      <label>お預かり金額</label>
+      <div class="money-grid" id="quickButtons"></div>
+      <input type="number" id="receivedInput" placeholder="金額を手入力" style="margin-bottom: 12px;">
+
+      <div class="change-box">
+        <span style="font-weight: bold;">お釣り</span>
+        <div class="change-amount"><span id="changeDisplay">0</span> 円</div>
+      </div>
+
+      <button id="submitBtn" class="btn-submit">会計完了</button>
+    </div>
+
+    <!-- クラウド集計・履歴カード -->
+    <div class="card">
+      <label id="summaryTitle">1日目の売上状況（全体同期）</label>
+      <div style="display:flex; justify-content:space-around; margin:10px 0; font-size:1.05rem;">
+        <div>総客数: <strong id="totalGuests">0</strong>名</div>
+        <div>総売上: <strong id="totalSales">0</strong>円</div>
+      </div>
+
+      <label>直近の会計（最新5件）</label>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>時間</th><th>席</th><th>人数</th><th>合計</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+
+      <button class="btn-csv" id="btnCsv">売上データをCSV保存</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK読み込み -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { 
+      initializeFirestore, 
+      persistentLocalCache, 
+      collection, 
+      addDoc, 
+      onSnapshot, 
+      query, 
+      orderBy 
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // ユーザー様の設定キー
+    const firebaseConfig = {
+      apiKey: "AIzaSyCu1zmGCBciNsxNfyrb8LR7afhKiuS0u-0",
+      authDomain: "w-teaceremony-cashregister.firebaseapp.com",
+      projectId: "w-teaceremony-cashregister",
+      storageBucket: "w-teaceremony-cashregister.firebasestorage.app",
+      messagingSenderId: "1016162660412",
+      appId: "1:1016162660412:web:bebfbd99d39f82ec8e1339",
+      measurementId: "G-EG1RKS14YB"
+    };
+
+    // Firebase初期化 ＆ オフラインキャッシュ有効化
+    const app = initializeApp(firebaseConfig);
+    const db = initializeFirestore(app, {
+      localCache: persistentLocalCache()
+    });
+
+    let unitPrice = parseInt(localStorage.getItem('sadou_price') || '800');
+    let currentCount = 1;
+    let currentReceived = unitPrice;
+    let allSales = []; // クラウドから取得した全データ
+
+    // DOM要素
+    const daySelect = document.getElementById('daySelect');
+    const sessionSelect = document.getElementById('sessionSelect');
+    const countInput = document.getElementById('countInput');
+    const receivedInput = document.getElementById('receivedInput');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // 初期表示設定
+    document.getElementById('unitPriceInput').value = unitPrice;
+    document.getElementById('priceDisplay').textContent = unitPrice;
+    updateTotal();
+
+    // リアルタイムリスナー（クラウドでデータが変わると自動実行される）
+    const q = query(collection(db, "sales"), orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+      document.getElementById('cloudStatus').textContent = "クラウド同期済 ●";
+      document.getElementById('cloudStatus').style.color = "#16a34a";
+      document.getElementById('cloudStatus').style.background = "#dcfce7";
+
+      allSales = snapshot.docs.map(doc => doc.data());
+      filterSummary();
+    }, (error) => {
+      console.warn("オフライン動作中:", error);
+      document.getElementById('cloudStatus').textContent = "オフライン動作中 ○";
+      document.getElementById('cloudStatus').style.color = "#d97706";
+      document.getElementById('cloudStatus').style.background = "#fef3c7";
+    });
+
+    // 人数ボタンイベント
+    document.querySelectorAll('.btn-count').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const count = parseInt(btn.dataset.count);
+        currentCount = count;
+        countInput.value = count;
+        updateButtonHighlight(count);
+        updateTotal();
+      });
+    });
+
+    countInput.addEventListener('input', () => {
+      const val = parseInt(countInput.value) || 0;
+      if (val > 0) {
+        currentCount = val;
+        updateButtonHighlight(val);
+        updateTotal();
+      }
+    });
+
+    function updateButtonHighlight(count) {
+      document.querySelectorAll('.btn-count').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.count) === count);
+      });
+    }
+
+    function updateTotal() {
+      const total = currentCount * unitPrice;
+      document.getElementById('totalDisplay').textContent = total.toLocaleString();
+
+      const candidates = [total, 1000, 2000, 3000, 4000, 5000, 10000];
+      const valid = [...new Set(candidates.filter(c => c >= total))].slice(0, 6);
+      
+      const grid = document.getElementById('quickButtons');
+      grid.innerHTML = '';
+      valid.forEach(amt => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-money';
+        btn.textContent = (amt === total) ? `ぴったり` : `${amt.toLocaleString()}円`;
+        btn.onclick = () => {
+          receivedInput.value = amt;
+          calculateChange(amt);
+        };
+        grid.appendChild(btn);
+      });
+
+      receivedInput.value = total;
+      calculateChange(total);
+    }
+
+    receivedInput.addEventListener('input', () => {
+      const val = parseInt(receivedInput.value) || 0;
+      calculateChange(val);
+    });
+
+    function calculateChange(received) {
+      currentReceived = received;
+      const total = currentCount * unitPrice;
+      const change = currentReceived - total;
+
+      const changeEl = document.getElementById('changeDisplay');
+      if (change < 0) {
+        changeEl.textContent = '不足';
+        submitBtn.disabled = true;
+      } else {
+        changeEl.textContent = change.toLocaleString();
+        submitBtn.disabled = false;
+      }
+    }
+
+    // 会計確定 -> Firestoreへ保存
+    submitBtn.addEventListener('click', async () => {
+      submitBtn.disabled = true;
+      const total = currentCount * unitPrice;
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const orderData = {
+        day: daySelect.value,
+        session: sessionSelect.value,
+        time: timeStr,
+        timestamp: now.toLocaleString('ja-JP'),
+        count: currentCount,
+        unitPrice: unitPrice,
+        total: total,
+        received: currentReceived,
+        change: currentReceived - total,
+        createdAt: Date.now() // ソート用
+      };
+
+      try {
+        await addDoc(collection(db, "sales"), orderData);
+        alert(`会計完了！\nお釣り: ${(currentReceived - total).toLocaleString()} 円`);
+      } catch (e) {
+        console.error("保存エラー（ローカル保持中）:", e);
+        alert("オフラインですが手元に記録しました（ネット接続時に自動送信されます）");
+      }
+
+      // 1名に戻す
+      currentCount = 1;
+      countInput.value = 1;
+      updateButtonHighlight(1);
+      updateTotal();
+    });
+
+    // 集計表示更新
+    function filterSummary() {
+      const selectedDay = daySelect.value;
+      document.getElementById('summaryTitle').textContent = `${selectedDay}の売上状況（全体同期）`;
+
+      const dayData = allSales.filter(item => item.day === selectedDay);
+      const guests = dayData.reduce((sum, item) => sum + item.count, 0);
+      const sales = dayData.reduce((sum, item) => sum + item.total, 0);
+
+      document.getElementById('totalGuests').textContent = guests.toLocaleString();
+      document.getElementById('totalSales').textContent = sales.toLocaleString();
+
+      const tbody = document.getElementById('historyBody');
+      tbody.innerHTML = '';
+      dayData.slice(0, 5).forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.time}</td>
+          <td>${item.session}</td>
+          <td>${item.count}名</td>
+          <td>${item.total.toLocaleString()}円</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    daySelect.addEventListener('change', filterSummary);
+
+    // CSVダウンロード
+    document.getElementById('btnCsv').addEventListener('click', () => {
+      if (allSales.length === 0) {
+        alert('売上データがまだありません。');
+        return;
+      }
+
+      let csv = '開催日,回,時間,人数,単価,合計金額,預かり,お釣り,日時詳細\n';
+      allSales.forEach(d => {
+        csv += `"${d.day}","${d.session}","${d.time}",${d.count},${d.unitPrice},${d.total},${d.received},${d.change},"${d.timestamp}"\n`;
+      });
+
+      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `茶道部_全売上_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+    });
+
+    // 設定トグル
+    document.getElementById('btnToggleSetting').addEventListener('click', () => {
+      const el = document.getElementById('settingCard');
+      el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+    });
+
+    document.getElementById('btnSavePrice').addEventListener('click', () => {
+      const val = parseInt(document.getElementById('unitPriceInput').value);
+      if (val > 0) {
+        unitPrice = val;
+        localStorage.setItem('sadou_price', val);
+        document.getElementById('priceDisplay').textContent = val;
+        document.getElementById('settingCard').style.display = 'none';
+        updateTotal();
+        alert(`席料を ${val} 円に変更しました。`);
+      }
+    });
+  </script>
+</body>
+</html>

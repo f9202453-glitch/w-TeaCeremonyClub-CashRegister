@@ -164,6 +164,7 @@
       background: #ccc;
       cursor: not-allowed;
     }
+    /* 履歴テーブルと取消ボタン */
     .history-table {
       width: 100%;
       border-collapse: collapse;
@@ -172,8 +173,17 @@
     }
     .history-table th, .history-table td {
       border-bottom: 1px solid #eee;
-      padding: 6px 4px;
+      padding: 6px 2px;
       text-align: center;
+    }
+    .btn-delete-row {
+      background: #fee2e2;
+      color: var(--danger);
+      border: 1px solid #fca5a5;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
     }
     .btn-setting {
       background: none;
@@ -193,6 +203,22 @@
       margin-top: 8px;
       cursor: pointer;
     }
+    /* 危険ゾーン（リセット） */
+    .danger-zone {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px dashed #d9534f;
+    }
+    .btn-reset-all {
+      width: 100%;
+      padding: 8px;
+      background: #fff;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -208,9 +234,15 @@
     <!-- 設定エリア -->
     <div id="settingCard" class="card" style="display: none; background: #fffde7;">
       <label>席料の単価設定 (円)</label>
-      <div style="display: flex; gap: 8px;">
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
         <input type="number" id="unitPriceInput" value="800">
         <button id="btnSavePrice" style="padding: 0 16px; background: var(--primary); color:#fff; border:none; border-radius:6px; cursor:pointer;">保存</button>
+      </div>
+
+      <!-- 全データ削除（テスト後のリセット用） -->
+      <div class="danger-zone">
+        <label style="color: var(--danger);">【本番前の初期化】テストデータの全消去</label>
+        <button class="btn-reset-all" id="btnResetAll">⚠️ 売上データを全てリセットする</button>
       </div>
     </div>
 
@@ -285,7 +317,7 @@
       <table class="history-table">
         <thead>
           <tr>
-            <th>時間</th><th>席</th><th>人数</th><th>合計</th>
+            <th>時間</th><th>席</th><th>人数</th><th>合計</th><th>操作</th>
           </tr>
         </thead>
         <tbody id="historyBody"></tbody>
@@ -295,7 +327,7 @@
     </div>
   </div>
 
-  <!-- Firebase SDK読み込み -->
+  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { 
@@ -303,12 +335,13 @@
       persistentLocalCache, 
       collection, 
       addDoc, 
+      deleteDoc,
+      doc,
       onSnapshot, 
       query, 
       orderBy 
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // ユーザー様の設定キー
     const firebaseConfig = {
       apiKey: "AIzaSyCu1zmGCBciNsxNfyrb8LR7afhKiuS0u-0",
       authDomain: "w-teaceremony-cashregister.firebaseapp.com",
@@ -319,7 +352,6 @@
       measurementId: "G-EG1RKS14YB"
     };
 
-    // Firebase初期化 ＆ オフラインキャッシュ有効化
     const app = initializeApp(firebaseConfig);
     const db = initializeFirestore(app, {
       localCache: persistentLocalCache()
@@ -328,28 +360,27 @@
     let unitPrice = parseInt(localStorage.getItem('sadou_price') || '800');
     let currentCount = 1;
     let currentReceived = unitPrice;
-    let allSales = []; // クラウドから取得した全データ
+    let allSales = []; // { id, ...data }
 
-    // DOM要素
     const daySelect = document.getElementById('daySelect');
     const sessionSelect = document.getElementById('sessionSelect');
     const countInput = document.getElementById('countInput');
     const receivedInput = document.getElementById('receivedInput');
     const submitBtn = document.getElementById('submitBtn');
 
-    // 初期表示設定
     document.getElementById('unitPriceInput').value = unitPrice;
     document.getElementById('priceDisplay').textContent = unitPrice;
     updateTotal();
 
-    // リアルタイムリスナー（クラウドでデータが変わると自動実行される）
+    // リアルタイム監視
     const q = query(collection(db, "sales"), orderBy("createdAt", "desc"));
     onSnapshot(q, (snapshot) => {
       document.getElementById('cloudStatus').textContent = "クラウド同期済 ●";
       document.getElementById('cloudStatus').style.color = "#16a34a";
       document.getElementById('cloudStatus').style.background = "#dcfce7";
 
-      allSales = snapshot.docs.map(doc => doc.data());
+      // doc.id も一緒に保存
+      allSales = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       filterSummary();
     }, (error) => {
       console.warn("オフライン動作中:", error);
@@ -358,7 +389,7 @@
       document.getElementById('cloudStatus').style.background = "#fef3c7";
     });
 
-    // 人数ボタンイベント
+    // 人数ボタン
     document.querySelectorAll('.btn-count').forEach(btn => {
       btn.addEventListener('click', () => {
         const count = parseInt(btn.dataset.count);
@@ -428,7 +459,7 @@
       }
     }
 
-    // 会計確定 -> Firestoreへ保存
+    // 会計確定
     submitBtn.addEventListener('click', async () => {
       submitBtn.disabled = true;
       const total = currentCount * unitPrice;
@@ -445,25 +476,59 @@
         total: total,
         received: currentReceived,
         change: currentReceived - total,
-        createdAt: Date.now() // ソート用
+        createdAt: Date.now()
       };
 
       try {
         await addDoc(collection(db, "sales"), orderData);
         alert(`会計完了！\nお釣り: ${(currentReceived - total).toLocaleString()} 円`);
       } catch (e) {
-        console.error("保存エラー（ローカル保持中）:", e);
-        alert("オフラインですが手元に記録しました（ネット接続時に自動送信されます）");
+        console.error("保存エラー:", e);
+        alert("オフラインですが手元に記録しました");
       }
 
-      // 1名に戻す
       currentCount = 1;
       countInput.value = 1;
       updateButtonHighlight(1);
       updateTotal();
     });
 
-    // 集計表示更新
+    // 1件取消（削除）
+    window.deleteSingleOrder = async (docId, infoText) => {
+      if (confirm(`【確認】\nこの会計を取り消しますか？\n（${infoText}）`)) {
+        try {
+          await deleteDoc(doc(db, "sales", docId));
+          alert("会計を取り消しました。");
+        } catch (e) {
+          alert("削除に失敗しました：" + e.message);
+        }
+      }
+    };
+
+    // 全データリセット
+    document.getElementById('btnResetAll').addEventListener('click', async () => {
+      if (allSales.length === 0) {
+        alert("売上データは既に空です。");
+        return;
+      }
+
+      const input = prompt("⚠️ 本当に全ての売上データをリセットしますか？\n実行する場合は「リセット」と入力してください。");
+      if (input === "リセット") {
+        try {
+          // すべてのドキュメントを削除
+          const deletePromises = allSales.map(item => deleteDoc(doc(db, "sales", item.id)));
+          await Promise.all(deletePromises);
+          alert("すべてのデータをリセット（全消去）しました！");
+          document.getElementById('settingCard').style.display = 'none';
+        } catch (e) {
+          alert("リセットに失敗しました：" + e.message);
+        }
+      } else if (input !== null) {
+        alert("入力が一致しなかったためキャンセルしました。");
+      }
+    });
+
+    // 集計更新
     function filterSummary() {
       const selectedDay = daySelect.value;
       document.getElementById('summaryTitle').textContent = `${selectedDay}の売上状況（全体同期）`;
@@ -475,15 +540,18 @@
       document.getElementById('totalGuests').textContent = guests.toLocaleString();
       document.getElementById('totalSales').textContent = sales.toLocaleString();
 
+      // 最新5件を描画（取消ボタン付き）
       const tbody = document.getElementById('historyBody');
       tbody.innerHTML = '';
       dayData.slice(0, 5).forEach(item => {
         const tr = document.createElement('tr');
+        const info = `${item.session} ${item.count}名 (${item.total}円)`;
         tr.innerHTML = `
           <td>${item.time}</td>
           <td>${item.session}</td>
           <td>${item.count}名</td>
           <td>${item.total.toLocaleString()}円</td>
+          <td><button class="btn-delete-row" onclick="deleteSingleOrder('${item.id}', '${info}')">取消</button></td>
         `;
         tbody.appendChild(tr);
       });

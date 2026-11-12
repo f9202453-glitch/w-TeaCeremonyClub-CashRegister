@@ -29,7 +29,7 @@
 - 画面下の **[売上データをCSV保存]** を押すと、全データがダウンロードされます。
 - パソコンで開けばExcelで印刷・集計できます。
 
-🌐 Quick English Guide
+### 🌐 Quick English Guide
 1. Open the URL on your mobile browser.
 2. Select the number of guests and amount received.
 3. Tap [会計完了 (Complete)] to submit.

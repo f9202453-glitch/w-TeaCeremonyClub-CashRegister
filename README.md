@@ -44,7 +44,7 @@
 - **データベース（Google Firebase）**:
   - 管理画面: https://console.firebase.google.com/
   - ログインアカウント: `wteaceremony@gmail.com`
-  - ログインパスワード：vynnak-winsuZ-9fytxo
+  - ログインパスワード：`vynnak-winsuZ-9fytxo`
 
 ### 3. アプリを改造・修正したい場合
 - ボタンを増やしたい、メニューを追加したいなどの改修は、**GeminiやChatGPTなどのAIに `index.html` のコードを丸ごと貼り付けて、「〇〇という機能を追加して」と頼むだけ**で誰でも簡単に直せます！

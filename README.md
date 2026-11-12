@@ -35,4 +35,4 @@
 3. Tap [会計完了 (Complete)] to submit.
 4. To cancel a mistaken order, tap [取消 (Cancel)] in the history list below.
 
-最終変更（2026/11/12）
+最終更新（2026/11/12）

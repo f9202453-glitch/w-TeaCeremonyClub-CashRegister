@@ -29,6 +29,11 @@
 - 画面下の **[売上データをCSV保存]** を押すと、全データがダウンロードされます。
 - パソコンで開けばExcelで印刷・集計できます。
 
+🌐 Quick English Guide
+1. Open the URL on your mobile browser.
+2. Select the number of guests and amount received.
+3. Tap [会計完了 (Complete)] to submit.
+4. To cancel a mistaken order, tap [取消 (Cancel)] in the history list below.
 ---
 
 ## ⚙ 【来年度の管理者向け】引き継ぎ・管理情報

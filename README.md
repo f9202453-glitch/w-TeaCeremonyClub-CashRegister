@@ -1,4 +1,4 @@
 <h1>会計システムについて</h1>
 全てHTMLを使っている。
-Google AI Studioが作成。
-URLは、「Setting」→「Pages」→「Your site 
+<p>Google AI Studioが作成。</p>
+URLは、「Setting」→「Pages」→「Your site is live at https://f9202453-glitch.github.io/w-TeaCeremonyClub-CashRegister/」

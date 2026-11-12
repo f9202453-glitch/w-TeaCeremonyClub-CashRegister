@@ -8,8 +8,7 @@
 ## 📱 【当日使う人向け】基本の使い方
 
 ### 1. アプリの開き方
-- URL: `https://【あなたのURL】/`
-- **おすすめ**: スマホのブラウザで開いた後、「ホーム画面に追加」しておくとアプリのように使えます。
+- URL: `https://f9202453-glitch.github.io/w-TeaCeremonyClub-CashRegister/`
 
 ### 2. 会計の手順
 1. 上部で「1日目 / 2日目」と「現在の席（第◯席）」を選ぶ。
@@ -44,7 +43,8 @@
   - コードは `index.html` 1ファイルだけで完結しています。
 - **データベース（Google Firebase）**:
   - 管理画面: https://console.firebase.google.com/
-  - ログインアカウント: `【部活の共通Gmailなど】`
+  - ログインアカウント: `wteaceremony@gmail.com`
+  - ログインパスワード：vynnak-winsuZ-9fytxo
 
 ### 3. アプリを改造・修正したい場合
 - ボタンを増やしたい、メニューを追加したいなどの改修は、**GeminiやChatGPTなどのAIに `index.html` のコードを丸ごと貼り付けて、「〇〇という機能を追加して」と頼むだけ**で誰でも簡単に直せます！

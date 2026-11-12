@@ -39,7 +39,7 @@
 
 ### 2. アカウントと管理場所
 - **コード管理（GitHub）**:
-  - プログラムの保管場所・管理ページ（リポジトリURL）: `https://github.com/f9202453-glitch/w-TeaCeremonyClub-CashRegister/edit/main/README.md`
+  - プログラムの保管場所・管理ページ（リポジトリURL）: https://github.com/f9202453-glitch/w-TeaCeremonyClub-CashRegister
   - コードは `index.html` 1ファイルだけで完結しています。
 - **データベース（Google Firebase）**:
   - 管理画面: https://console.firebase.google.com/
